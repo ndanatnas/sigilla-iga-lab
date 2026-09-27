@@ -1,0 +1,15 @@
+# Environment files with credentials
+.env
+*.env
+!.env.example
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Temporary
+*.tmp
+*.log
