@@ -1,0 +1,17 @@
+employeeNumber,firstName,lastName,email,department,jobTitle,managerEmployeeNumber,isResidentialTutor,isHeadOfDepartment,isFinanceApprover,startDate,endDate
+EMP0001,Claire,Dubois,claire.dubois@sigilla.ch,academic,Mathematics Teacher,EMP0010,false,false,false,2021-08-15,
+EMP0002,Marco,Rossi,marco.rossi@sigilla.ch,academic,Physics Teacher,EMP0010,true,false,false,2020-08-17,
+EMP0003,Anna,Weber,anna.weber@sigilla.ch,finance,Finance Officer,EMP0011,false,false,true,2019-03-04,
+EMP0004,Lucas,Fernandes,lucas.fernandes@sigilla.ch,it,Systems Engineer,EMP0012,false,false,false,2022-09-01,
+EMP0005,Hannah,Schmid,hannah.schmid@sigilla.ch,admissions,Admissions Officer,EMP0013,false,false,false,2023-01-09,
+EMP0006,Yuki,Tanaka,yuki.tanaka@sigilla.ch,boarding,Houseparent,EMP0014,true,false,false,2021-08-16,
+EMP0007,Ahmed,Benali,ahmed.benali@sigilla.ch,hr,HR Officer,EMP0015,false,false,false,2022-02-14,
+EMP0008,Pedro,Alves,pedro.alves@sigilla.ch,operations,Facilities Coordinator,EMP0020,false,false,false,2020-11-03,
+EMP0009,Nina,Petrova,nina.petrova@sigilla.ch,academic,Chemistry Teacher,EMP0010,false,false,false,2022-08-15,2026-08-31
+EMP0010,Sophie,Laurent,sophie.laurent@sigilla.ch,academic,Head of Academics,EMP0020,false,true,false,2015-08-10,
+EMP0011,Thomas,Meier,thomas.meier@sigilla.ch,finance,Head of Finance,EMP0020,false,true,true,2016-01-11,
+EMP0012,Priya,Nair,priya.nair@sigilla.ch,it,Head of IT,EMP0020,false,true,false,2018-04-16,
+EMP0013,Olivier,Blanc,olivier.blanc@sigilla.ch,admissions,Head of Admissions,EMP0020,false,true,false,2017-06-05,
+EMP0014,Fiona,Murray,fiona.murray@sigilla.ch,boarding,Head of Boarding,EMP0020,true,true,false,2014-08-11,
+EMP0015,Ingrid,Larsen,ingrid.larsen@sigilla.ch,hr,Head of HR,EMP0020,false,true,false,2019-09-02,
+EMP0020,Elena,Kovac,elena.kovac@sigilla.ch,operations,Director,,false,true,false,2012-07-02,
