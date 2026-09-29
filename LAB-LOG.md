@@ -180,10 +180,120 @@ the detection work in midPoint.
 
 ---
 
+## The HR source
+
+Sixteen records covering every department, with a management chain that
+terminates at a director whose `managerEmployeeNumber` is empty — the edge case
+that breaks naive rules.
+
+The first three records reproduce the hand-made Keycloak accounts exactly, so
+the first reconciliation has to correlate and link them rather than create
+duplicates. One record carries a past `endDate` as the leaver case.
+
+### A gap found while building it
+
+The original schema had `isResidentialTutor` and `isHeadOfDepartment` but
+nothing expressing "this person approves payments". The consequence would have
+been severe: `aweber` sits in `/responsibilities/finance-approvers` in Keycloak,
+but no rule derived from the CSV could produce that membership. Reconciliation
+would have read it as drift and removed it — erasing the very SoD violation the
+lab exists to demonstrate.
+
+`isFinanceApprover` was added. The principle: every membership present in the
+target must be derivable from policy. If it is not, it is either genuine drift
+to be removed, or a gap in the model.
+
+A second violation was then planted deliberately. `EMP0011`, Head of Finance and
+`aweber`'s own manager, is also a finance approver. A detection rule that only
+catches the first case would miss it, and in practice a conflict at management
+level is the more serious finding.
+
+### Derivation rules to implement
+
+```
+department               -> /staff/{department}
+isHeadOfDepartment=true  -> /responsibilities/heads-of-department
+isResidentialTutor=true  -> /responsibilities/residential-tutors
+isFinanceApprover=true   -> /responsibilities/finance-approvers
+endDate in the past      -> account disabled, all memberships revoked
+```
+
+### A deliberate simplification
+
+`Kovac` is written without its diacritic. Accented characters in CSV raise real
+encoding questions, but here they would only add a debugging variable that
+teaches nothing about IGA. Worth revisiting later.
+
+---
+
+## Standing up midPoint
+
+### Why one compose file rather than two
+
+Evolveum's compose declares its own bridge network. Containers on different
+networks cannot reach each other, so midPoint would have had no route to
+Keycloak — and Keycloak is the target the whole lab depends on.
+
+The alternative was an external shared network, which works but introduces
+start-up ordering between two files. Merging into one file keeps the README's
+promise of a single `docker compose up -d`, and reflects the reality that
+Keycloak without midPoint demonstrates nothing, and the reverse is equally true.
+
+With the network section removed entirely, every service lands on the project
+default network and resolves the others by service name. From inside midPoint,
+Keycloak is `http://keycloak:8080` — not `localhost:8080`, which inside a
+container means the container itself.
+
+### Other changes to Evolveum's file
+
+- Port published as `8081:8080`; 8080 on the host belongs to Keycloak
+- Image pinned to `4.9-alpine` instead of `${MP_VER:-latest}`, so the
+  configuration and the version it was written for stay together
+- `version: "3.3"` removed — obsolete and ignored by current Compose
+- Health check added to the midPoint database; the original waited only for the
+  container to start, not for Postgres to accept connections
+- HR source bind-mounted read-only at `/hr-source`. An authoritative source is
+  read, never written to by its consumer
+
+The `midpoint-init` container was kept verbatim. It runs `ninja.sh -B info`
+against the database and creates the schema only if that query fails — check
+before acting, so a second run is harmless. It creates two schemas, REPOSITORY
+and AUDIT, because audit data has its own retention requirements and must not be
+affected by ordinary operations. midPoint itself waits on
+`condition: service_completed_successfully`: a task container succeeds by
+exiting, not by staying up.
+
+### Architecture
+
+`docker manifest inspect` confirmed `evolveum/midpoint:4.9-alpine` publishes
+both amd64 and arm64. It runs natively on Apple Silicon; no Rosetta, no
+`platform: linux/amd64`.
+
+### Notes for whoever runs this
+
+- midPoint serves under a context path: **http://localhost:8081/midpoint**.
+  The bare host and port returns 404.
+- Since 4.8.1 there is no default password. One is generated on first start and
+  written to the log: `docker compose logs midpoint | grep -i password`.
+- Startup logs several `PolicyType ... was not found` errors during initial
+  import. `030-role-superuser.xml` is imported before
+  `300-classification-privileged-access.xml`, which creates the referenced
+  object. The closing line reports 147 objects, 0 errors.
+
+### What the startup log confirms
+
+- `ConnId com.evolveum.polygon.connector.csv.CsvConnector v2.8` is registered
+  and will read the HR source
+- `objectCollection ...353 (Users with SoD violations)` ships with midPoint, so
+  the exclusion rule between `finance-write` and `finance-approve` will populate
+  a ready-made screen rather than needing one built
+
+---
+
 ## Open items
 
-- [ ] Move `KC_BOOTSTRAP_ADMIN_*` to a `.env` file, commit a `.env.example`,
-      add `.env` to `.gitignore`
+- [ ] Move `KC_BOOTSTRAP_ADMIN_*` and both database passwords to a `.env` file,
+      commit a `.env.example`, add `.env` to `.gitignore`
 - [ ] Add a health check to the Keycloak service using the management endpoint
       on port 9000 (already enabled via `KC_HEALTH_ENABLED`)
 - [x] Export the `sigilla` realm to JSON and commit it —
@@ -191,4 +301,9 @@ the detection work in midPoint.
 - [ ] Remove the stopped container left over from the pre-Compose run
 - [ ] Add validation rules to the custom attributes (e.g. `employeeNumber`
       matching `EMP\d{4}`)
-- [ ] Build the HR CSV and stand up midPoint on port 8081
+- [x] Build the HR CSV and stand up midPoint on port 8081
+- [ ] Configure the CSV resource and correlate on `employeeNumber`
+- [ ] Configure the Keycloak resource as a provisioning target
+- [ ] Implement the derivation rules and the joiner / mover / leaver flows
+- [ ] Add the exclusion rule between `finance-write` and `finance-approve`
+- [ ] Export midPoint objects to XML and version them alongside the realm

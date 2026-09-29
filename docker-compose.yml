@@ -1,4 +1,8 @@
 services:
+  # ===============================================================
+  # KEYCLOAK — target system
+  # Admin console: http://localhost:8080
+  # ===============================================================
   keycloak-db:
     image: postgres:16-alpine
     container_name: iam-lab-keycloak-db
@@ -34,5 +38,85 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ===============================================================
+  # MIDPOINT — IGA engine
+  # Web UI: http://localhost:8081
+  # Adapted from Evolveum/midpoint-docker:
+  #   - port moved to 8081 (8080 belongs to Keycloak)
+  #   - version pinned instead of :latest
+  #   - dedicated network removed so every service shares one
+  #   - HR source mounted read-only at /hr-source
+  # ===============================================================
+  midpoint-db:
+    image: postgres:16-alpine
+    container_name: iam-lab-midpoint-db
+    environment:
+      POSTGRES_DB: midpoint
+      POSTGRES_USER: midpoint
+      POSTGRES_PASSWORD: midpoint
+      POSTGRES_INITDB_ARGS: "--lc-collate=en_US.utf8 --lc-ctype=en_US.utf8"
+    volumes:
+      - midpoint-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U midpoint -d midpoint"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Runs once, creates the repository and audit schemas, then exits.
+  # midpoint waits for it to finish successfully before starting.
+  midpoint-init:
+    image: evolveum/midpoint:4.9-alpine
+    container_name: iam-lab-midpoint-init
+    command: >
+      bash -c "
+      cd /opt/midpoint ;
+      bin/midpoint.sh init-native ;
+      echo ' - - - - - - ' ;
+      bin/ninja.sh -B info >/dev/null 2>/tmp/ninja.log ;
+      grep -q \"ERROR\" /tmp/ninja.log && (
+      bin/ninja.sh run-sql --create --mode REPOSITORY ;
+      bin/ninja.sh run-sql --create --mode AUDIT
+      ) ||
+      echo -e '\\n Repository init is not needed...' ;
+      "
+    environment:
+      MP_SET_midpoint_repository_jdbcUsername: midpoint
+      MP_SET_midpoint_repository_jdbcPassword: midpoint
+      MP_SET_midpoint_repository_jdbcUrl: jdbc:postgresql://midpoint-db:5432/midpoint
+      MP_SET_midpoint_repository_database: postgresql
+      MP_INIT_CFG: /opt/midpoint/var
+    volumes:
+      - midpoint-home:/opt/midpoint/var
+    depends_on:
+      midpoint-db:
+        condition: service_healthy
+
+  midpoint:
+    image: evolveum/midpoint:4.9-alpine
+    container_name: iam-lab-midpoint
+    command: ["/opt/midpoint/bin/midpoint.sh", "container"]
+    environment:
+      MP_SET_midpoint_repository_jdbcUsername: midpoint
+      MP_SET_midpoint_repository_jdbcPassword: midpoint
+      MP_SET_midpoint_repository_jdbcUrl: jdbc:postgresql://midpoint-db:5432/midpoint
+      MP_SET_midpoint_repository_database: postgresql
+      MP_UNSET_midpoint_repository_hibernateHbm2ddl: "1"
+      MP_NO_ENV_COMPAT: "1"
+    ports:
+      - "8081:8080"
+    volumes:
+      - midpoint-home:/opt/midpoint/var
+      - ./hr-source:/hr-source:ro
+    depends_on:
+      midpoint-init:
+        condition: service_completed_successfully
+      midpoint-db:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   keycloak-db-data:
+  midpoint-db-data:
+  midpoint-home:
