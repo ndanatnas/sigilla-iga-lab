@@ -13,3 +13,6 @@
 # Temporary
 *.tmp
 *.log
+
+# CSV connector lock files
+hr-source/.*.lock

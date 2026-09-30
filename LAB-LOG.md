@@ -290,10 +290,95 @@ both amd64 and arm64. It runs natively on Apple Silicon; no Rosetta, no
 
 ---
 
+## The CSV resource
+
+### Read-only was the right principle and the wrong configuration
+
+The HR source was first bind-mounted `:ro`, on the reasoning that an
+authoritative source is read by its consumers and never written to. The
+connector refused:
+
+```
+Configuration error: Can't write to file '/hr-source/staff.csv'
+```
+
+Not *read* — *write*. The ConnId CSV connector requires write access to the file
+and its directory even when the resource is source-only, because it creates a
+lock file alongside the data to prevent concurrent reads during synchronisation,
+and uses temporary files in the same directory during sync.
+
+The `:ro` flag was dropped. The lesson is worth more than the fix: an
+architectural intention has to fit what the tool actually supports. The tightest
+access model on paper is worthless if the connector cannot operate under it —
+either the restriction is relaxed, or it is enforced in another layer, for
+instance by keeping the canonical file elsewhere and copying it into the
+connector's directory.
+
+### Paths inside a container are not paths on the host
+
+The connector is configured with `/hr-source/staff.csv`, not
+`/Users/.../iam-lab/hr-source/staff.csv`. The bind mount makes the same file
+reachable under two different addresses depending on who is asking.
+
+This is the same class of mistake as reaching Keycloak on `localhost:8080` from
+inside the midPoint container, where `localhost` means the container itself.
+Both cost hours to anyone who has not internalised that a container has its own
+view of the world.
+
+### Correlation and naming
+
+`employeeNumber` was selected as **both** the unique attribute and the name
+attribute.
+
+Unique is the correlation key, for the reasons already recorded. Name is how the
+account is displayed in listings and reports, and the temptation is to use
+`email` because it reads better. That temptation reintroduces the problem
+through the side door: in several configurations the name ends up serving as a
+secondary identifier, and it is not stable across a change of surname.
+
+`EMP0001` is less readable than `claire.dubois@sigilla.ch` in a list. The
+midPoint User object carries the full name anyway; the resource screen is about
+the account, not the identity. Readability is a convenience, stability is a
+correctness property.
+
+The password attribute was left unset. An authoritative HR feed carries no
+credentials.
+
+### Built from scratch rather than from a template
+
+The wizard offers Inherit Template, Copy From Template and From Scratch. A
+template would have produced a working resource with prefilled mappings and no
+understanding of why they are what they are, and debugging someone else's
+configuration is worse than writing your own. The CSV connector is the simplest
+one there is — a text file with columns — so if any resource is worth building
+by hand to learn the model, it is this one. The Keycloak resource will be
+considerably more involved, and this experience pays for itself there.
+
+### Left in Proposed (simulation)
+
+A resource in *proposed* state can be queried but executes nothing: tasks run in
+simulation and report what would have happened. Only *active* makes operations
+real.
+
+In production this is what stands between a mapping error and thousands of
+revoked legitimate entitlements on first reconciliation. Simulate, read the
+report, correct, then activate — the simulation is part of configuring a
+resource, not an optional extra.
+
+### Verified
+
+`Resource objects` lists all sixteen accounts, `EMP0001` through `EMP0020`. The
+whole path is proven: file mounted into the container, connector reading it,
+delimiter inferred correctly, `employeeNumber` serving as the identifier.
+
+---
+
 ## Open items
 
 - [ ] Move `KC_BOOTSTRAP_ADMIN_*` and both database passwords to a `.env` file,
       commit a `.env.example`, add `.env` to `.gitignore`
+- [ ] Add `hr-source/.*.lock` to `.gitignore` — the CSV connector writes a lock
+      file next to the data
 - [ ] Add a health check to the Keycloak service using the management endpoint
       on port 9000 (already enabled via `KC_HEALTH_ENABLED`)
 - [x] Export the `sigilla` realm to JSON and commit it —
@@ -302,7 +387,8 @@ both amd64 and arm64. It runs natively on Apple Silicon; no Rosetta, no
 - [ ] Add validation rules to the custom attributes (e.g. `employeeNumber`
       matching `EMP\d{4}`)
 - [x] Build the HR CSV and stand up midPoint on port 8081
-- [ ] Configure the CSV resource and correlate on `employeeNumber`
+- [x] Create the CSV resource, correlating and naming on `employeeNumber`
+- [ ] Configure attribute mappings from the CSV into midPoint User objects
 - [ ] Configure the Keycloak resource as a provisioning target
 - [ ] Implement the derivation rules and the joiner / mover / leaver flows
 - [ ] Add the exclusion rule between `finance-write` and `finance-approve`
