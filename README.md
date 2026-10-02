@@ -3,9 +3,10 @@
 Identity Governance and Administration lab built on open source components,
 modelling a fictional international boarding school in Switzerland.
 
-**Status:** work in progress — Keycloak target under construction.
+**Status:** work in progress. See [Where this stands](#where-this-stands) for what
+is built and what is not.
 
-## What this lab demonstrates
+## What this lab sets out to demonstrate
 
 An end-to-end identity lifecycle driven from an authoritative HR source:
 
@@ -18,6 +19,33 @@ HR source (CSV)  ->  midPoint (IGA engine)  ->  Keycloak (target system)
 - **Leaver** — a termination date disables the account and revokes all access
 - **Reconciliation** — accounts created outside the process are detected and corrected
 - **Segregation of duties** — conflicting entitlements are detected and remediated
+
+## Where this stands
+
+**Built and verified**
+
+- Keycloak target: realm, declarative user profile with HR-derived attributes,
+  twelve entitlements, a two-branch group model, and group inheritance verified
+  against three hand-made accounts
+- Realm configuration exported to `keycloak/realm-sigilla.json`, schema included
+- Authoritative HR source: sixteen records in `hr-source/staff.csv`, covering
+  every department, a management chain, a leaver, and two deliberate
+  segregation-of-duties conflicts
+- midPoint and Keycloak running side by side from one compose file, on a shared
+  network
+- CSV resource created in midPoint, correlating and naming on `employeeNumber`,
+  all sixteen accounts readable
+
+**Not built yet**
+
+- Attribute mappings from the CSV into midPoint user objects
+- The Keycloak resource as a provisioning target
+- The joiner, mover and leaver flows themselves
+- The exclusion rule that detects the planted SoD conflicts
+- midPoint objects exported to XML and version controlled
+
+The reasoning behind each decision, including one that turned out to be wrong,
+is recorded in [LAB-LOG.md](LAB-LOG.md).
 
 ## Why Keycloak and midPoint
 

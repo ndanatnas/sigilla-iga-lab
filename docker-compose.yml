@@ -45,8 +45,8 @@ services:
   #   - port moved to 8081 (8080 belongs to Keycloak)
   #   - version pinned instead of :latest
   #   - dedicated network removed so every service shares one
-  #   - HR source mounted read-write; the CSV connector needs to write its
-  #     lock file next to the data, so :ro does not work
+  #   - HR source mounted read-write; the CSV connector writes a lock file
+  #     next to the data during sync, so :ro does not work
   # ===============================================================
   midpoint-db:
     image: postgres:16-alpine
@@ -109,7 +109,7 @@ services:
       - "8081:8080"
     volumes:
       - midpoint-home:/opt/midpoint/var
-      - ./hr-source:/hr-source
+      - ./hr-source:/hr-source:ro
     depends_on:
       midpoint-init:
         condition: service_completed_successfully
@@ -121,4 +121,3 @@ volumes:
   keycloak-db-data:
   midpoint-db-data:
   midpoint-home:
-
