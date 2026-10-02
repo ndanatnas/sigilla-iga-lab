@@ -10,8 +10,23 @@ is built and what is not.
 
 An end-to-end identity lifecycle driven from an authoritative HR source:
 
-```
-HR source (CSV)  ->  midPoint (IGA engine)  ->  Keycloak (target system)
+```mermaid
+flowchart LR
+    CSV[("HR export<br/>staff.csv")]
+    MP["midPoint<br/><i>governance engine</i>"]
+    KC["Keycloak<br/><i>target system</i>"]
+
+    CSV -->|"read, correlate<br/>on employeeNumber"| MP
+    MP -->|"provision accounts<br/>and group membership"| KC
+    KC -.->|"reconcile:<br/>detect drift"| MP
+
+    subgraph entitlements ["Entitlements live on groups, never on users"]
+        direction TB
+        S["/staff/{department}<br/><i>where you sit</i>"]
+        R["/responsibilities/*<br/><i>what you also do</i>"]
+    end
+
+    KC --- entitlements
 ```
 
 - **Joiner** — a new HR record provisions an account with the correct group memberships
