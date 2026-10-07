@@ -109,7 +109,7 @@ services:
       - "8081:8080"
     volumes:
       - midpoint-home:/opt/midpoint/var
-      - ./hr-source:/hr-source:ro
+      - ./hr-source:/hr-source
     depends_on:
       midpoint-init:
         condition: service_completed_successfully
