@@ -1,10 +1,10 @@
-<resource xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3" xmlns:org="http://midpoint.evolveum.com/xml/ns/public/common/org-3" xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3" xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3" xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" oid="ebd5e599-4f07-4be0-be1c-07bdc2f9b563" version="36">
+<resource xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3" xmlns:org="http://midpoint.evolveum.com/xml/ns/public/common/org-3" xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3" xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3" xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" oid="ebd5e599-4f07-4be0-be1c-07bdc2f9b563" version="38">
     <_metadata id="1">
         <storage>
             <createTimestamp>2026-09-30T08:53:39.218Z</createTimestamp>
             <creatorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
             <createChannel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</createChannel>
-            <modifyTimestamp>2026-10-07T13:09:11.245Z</modifyTimestamp>
+            <modifyTimestamp>2026-10-10T09:48:49.910Z</modifyTimestamp>
             <modifierRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
             <modifyChannel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</modifyChannel>
         </storage>
@@ -15,27 +15,7 @@
     </_metadata>
     <name>HR Source (CSV)</name>
     <description>Authoritative HR export. Source of truth for the joiner, mover and leaver lifecycle</description>
-    <lifecycleState>proposed</lifecycleState>
-    <operationExecution id="36">
-        <recordType>simple</recordType>
-        <timestamp>2026-10-07T12:59:03.699Z</timestamp>
-        <operation>
-            <objectDelta>
-                <t:changeType>modify</t:changeType>
-                <t:objectType>c:ResourceType</t:objectType>
-            </objectDelta>
-            <executionResult>
-                <operation>com.evolveum.midpoint.model.impl.lens.ChangeExecutor.executeDelta</operation>
-                <status>success</status>
-                <importance>normal</importance>
-                <token>1000000000000040150</token>
-            </executionResult>
-            <objectName>HR Source (CSV)</objectName>
-        </operation>
-        <status>success</status>
-        <initiatorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
-        <channel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</channel>
-    </operationExecution>
+    <lifecycleState>active</lifecycleState>
     <operationExecution id="39">
         <recordType>simple</recordType>
         <timestamp>2026-10-07T12:59:25.904Z</timestamp>
@@ -109,6 +89,26 @@
                 <status>success</status>
                 <importance>normal</importance>
                 <token>1000000000000043738</token>
+            </executionResult>
+            <objectName>HR Source (CSV)</objectName>
+        </operation>
+        <status>success</status>
+        <initiatorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+        <channel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</channel>
+    </operationExecution>
+    <operationExecution id="53">
+        <recordType>simple</recordType>
+        <timestamp>2026-10-10T09:48:49.988Z</timestamp>
+        <operation>
+            <objectDelta>
+                <t:changeType>modify</t:changeType>
+                <t:objectType>c:ResourceType</t:objectType>
+            </objectDelta>
+            <executionResult>
+                <operation>com.evolveum.midpoint.model.impl.lens.ChangeExecutor.executeDelta</operation>
+                <status>success</status>
+                <importance>normal</importance>
+                <token>1000000000000084812</token>
             </executionResult>
             <objectName>HR Source (CSV)</objectName>
         </operation>

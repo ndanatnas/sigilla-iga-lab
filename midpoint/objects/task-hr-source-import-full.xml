@@ -1,0 +1,129 @@
+<task xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3" xmlns:org="http://midpoint.evolveum.com/xml/ns/public/common/org-3" xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3" xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3" xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" oid="9bd50b71-4e74-48cf-b9b3-7b0e687765bf">
+    <_metadata id="2">
+        <storage>
+            <createTimestamp>2026-10-10T09:06:09.228Z</createTimestamp>
+            <creatorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+            <createChannel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</createChannel>
+            <modifyTimestamp>2026-10-10T09:41:39.204Z</modifyTimestamp>
+            <modifierRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+            <modifyChannel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</modifyChannel>
+        </storage>
+        <process>
+            <requestTimestamp>2026-10-10T09:06:09.017Z</requestTimestamp>
+            <requestorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+        </process>
+    </_metadata>
+    <name>HR Source import (full, development config)</name>
+    <description>Experiment. Tests whether a resource in lifecycle state "proposed" prevents real execution, or only hides configuration from production-scoped tasks.</description>
+    <documentation>This is an experiment, not an operational task.
+
+Question: does a resource in lifecycle state `proposed` act as an execution barrier in its own right, or does it only hide the configuration from tasks running with production configuration scope?
+
+Method: run an import in Full mode, with "Configuration to use" set to Development, against the HR Source (CSV) resource while it remains in `proposed`.
+
+Both outcomes are acceptable, which is why the experiment is safe to run:
+
+- Nothing is created. Then `proposed` is an execution barrier of its own, and the two protections are independent.
+- Sixteen users are created. Then `proposed` only scopes which configuration is visible, and the safety in the earlier run came entirely from the task's own execution mode.
+
+The sixteen users are going to be created in any case, so the second outcome costs nothing.</documentation>
+    <operationExecution id="8">
+        <recordType>simple</recordType>
+        <timestamp>2026-10-10T09:06:09.314Z</timestamp>
+        <operation>
+            <objectDelta>
+                <t:changeType>add</t:changeType>
+                <t:objectType>c:TaskType</t:objectType>
+            </objectDelta>
+            <executionResult>
+                <operation>com.evolveum.midpoint.model.impl.lens.ChangeExecutor.executeDelta</operation>
+                <status>success</status>
+                <importance>normal</importance>
+                <token>1000000000000078947</token>
+            </executionResult>
+            <objectName>HR Source import (full, development config)</objectName>
+        </operation>
+        <status>success</status>
+        <initiatorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+        <channel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</channel>
+    </operationExecution>
+    <operationExecution id="9">
+        <recordType>simple</recordType>
+        <timestamp>2026-10-10T09:41:39.220Z</timestamp>
+        <operation>
+            <objectDelta>
+                <t:changeType>modify</t:changeType>
+                <t:objectType>c:TaskType</t:objectType>
+            </objectDelta>
+            <executionResult>
+                <operation>com.evolveum.midpoint.model.impl.lens.ChangeExecutor.executeDelta</operation>
+                <status>success</status>
+                <importance>normal</importance>
+                <token>1000000000000081315</token>
+            </executionResult>
+            <objectName>HR Source import (full, development config)</objectName>
+        </operation>
+        <status>success</status>
+        <initiatorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+        <channel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</channel>
+    </operationExecution>
+    <assignment id="1">
+        <_metadata id="3">
+            <storage>
+                <createTimestamp>2026-10-10T09:06:09.228Z</createTimestamp>
+                <creatorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+                <createChannel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</createChannel>
+            </storage>
+            <process>
+                <requestTimestamp>2026-10-10T09:06:09.017Z</requestTimestamp>
+                <requestorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+            </process>
+            <provenance>
+                <acquisition id="4">
+                    <actorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+                    <channel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</channel>
+                    <timestamp>2026-10-10T09:06:09.006Z</timestamp>
+                </acquisition>
+            </provenance>
+        </_metadata>
+        <targetRef oid="00000000-0000-0000-0000-000000000503" relation="org:default" type="c:ArchetypeType"/>
+        <activation>
+            <effectiveStatus>enabled</effectiveStatus>
+        </activation>
+    </assignment>
+    <iteration>0</iteration>
+    <iterationToken/>
+    <archetypeRef oid="00000000-0000-0000-0000-000000000503" relation="org:default" type="c:ArchetypeType"/>
+    <roleMembershipRef oid="00000000-0000-0000-0000-000000000503" relation="org:default" type="c:ArchetypeType">
+        <_metadata id="5">
+            <storage>
+                <createTimestamp>2026-10-10T09:06:09.196Z</createTimestamp>
+            </storage>
+            <provenance>
+                <assignmentPath>
+                    <sourceRef oid="9bd50b71-4e74-48cf-b9b3-7b0e687765bf" relation="org:default" type="c:TaskType"/>
+                    <segment id="6">
+                        <segmentOrder>1</segmentOrder>
+                        <assignmentId>1</assignmentId>
+                        <targetRef oid="00000000-0000-0000-0000-000000000503" relation="org:default" type="c:ArchetypeType"/>
+                        <matchingOrder>true</matchingOrder>
+                    </segment>
+                </assignmentPath>
+            </provenance>
+        </_metadata>
+    </roleMembershipRef>
+    <ownerRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+    <objectRef oid="ebd5e599-4f07-4be0-be1c-07bdc2f9b563" relation="org:default" type="c:ResourceType"/>
+    <binding>loose</binding>
+    <activity>
+        <work>
+            <import>
+                <resourceObjects>
+                    <resourceRef oid="ebd5e599-4f07-4be0-be1c-07bdc2f9b563" relation="org:default" type="c:ResourceType"/>
+                    <kind>account</kind>
+                    <intent>default</intent>
+                </resourceObjects>
+            </import>
+        </work>
+    </activity>
+</task>

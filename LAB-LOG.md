@@ -365,6 +365,9 @@ revoked legitimate entitlements on first reconciliation. Simulate, read the
 report, correct, then activate — the simulation is part of configuring a
 resource, not an optional extra.
 
+Superseded on 10 October 2026: moved to `active` after the simulated import ran clean.
+See "The import pipeline" below.
+
 ### Verified
 
 `Resource objects` lists all sixteen accounts, `EMP0001` through `EMP0020`. The
@@ -372,6 +375,209 @@ whole path is proven: file mounted into the container, connector reading it,
 delimiter inferred correctly, `employeeNumber` serving as the identifier.
 
 ---
+
+## The import pipeline
+
+### An activation inbound that resolved to nothing
+
+The first simulated import failed on all sixteen records while the task itself
+reported success. Status "Finished", zero seconds, green. Added objects: 0.
+
+Had it run in Full mode, the task would have reported success and created
+nothing. The task succeeded; its work failed. Most provisioning incidents live
+in that gap.
+
+    IllegalArgumentException: Cannot determine definition from content for
+    IDI null + null -> null
+        at ItemDeltaItem.determineDefinition
+        at MappingParser.parseSource
+        at AbstractMappingImpl.evaluateTimeValidity
+        at FullInboundsProcessing$SpecialInboundsEvaluatorImpl
+             .evaluateSpecialInbounds
+
+Three frames carry the answer. `evaluateSpecialInbounds` means the failure is
+in an activation or credentials mapping, not in the seven attribute mappings.
+`evaluateTimeValidity` narrows it to validFrom and validTo. `parseSource`
+failing in `determineDefinition` means the mapping's source resolved to no
+defined item.
+
+The null is not a null value. It is a null definition. midPoint never read
+anyone's data, which is why all sixteen failed identically.
+
+The configuration said:
+
+    <activation>
+      <validFrom>
+        <inbound>
+          <source><path>startDate</path></source>
+
+A bare `startDate` resolves to nothing. Resource attributes live under
+`attributes/` on the shadow and carry the resource namespace. The attribute
+mappings worked because their `<attribute><ref>ri:jobTitle</ref></attribute>`
+wrapper supplies the definition. The activation block has no such wrapper.
+
+Fixed by reusing the pattern already proven in the same file rather than
+debugging the special inbound syntax:
+
+    <attribute>
+      <ref>ri:startDate</ref>
+      <inbound>
+        <strength>strong</strength>
+        <target><path>activation/validFrom</path></target>
+      </inbound>
+    </attribute>
+
+No date conversion expression was needed. The CSV carries `2021-08-15` and
+midPoint converted it to xsd:dateTime on its own.
+
+### Resource objects are not accounts
+
+"Resource objects" reads live from the connector and shows what exists in the
+source. "Accounts" lists shadows, midPoint's local record of those objects.
+
+Why the shadow exists: it is what lets midPoint know an object was there after
+it disappears from the source. No shadow means no deletion detection, and no
+deletion detection means no deprovisioning.
+
+### Versioning definition, not history
+
+The simulation task exported at 66 KB. A task that had never run exported at
+121 lines. The difference is execution state: operation result trees, counters,
+timestamps.
+
+Rule: version the definition, not the history. Stating it exposed it as
+unenforced, since the files about to be committed were the large ones.
+
+`tools/strip-task-state.py` removes the runtime blocks (`activityState`,
+`operationStats`, `result`, `affectedObjects`, `_metadata`) and the per-run
+timestamps and states.
+
+    task-hr-source-import-simulation.xml   1338 -> 112 lines
+    task-hr-source-import-full.xml          273 -> 129 lines
+
+It parses the XML after cutting and refuses to write if malformed. `<result>`
+is a nested structure, and a regular expression matching too greedily would
+have produced a file that looked plausible and was not. A stripper that can
+silently corrupt its input is worse than no stripper.
+
+Well-formed is not intact, so the definitions were verified separately: name,
+work block, kind and intent, and the documentation field all survived. The
+documentation is the part most worth versioning, because it holds the
+reasoning.
+
+### The wizard decides when you are allowed to decide
+
+Creating an import task with "Simulate task" switched OFF removes the Execution
+step from the wizard entirely. No mode selector, no configuration selector.
+
+The resulting task had no `<execution>` element at all. Its mode and
+configuration scope appeared only under `<affectedObjects>`:
+
+    <executionMode>full</executionMode>
+    <predefinedConfigurationToUse>production</predefinedConfigurationToUse>
+
+`<affectedObjects>` is a computed summary, not declared configuration. It is
+midPoint saying "given current defaults, this is what would happen". A
+prediction, not an instruction. Which means the defaults can be overridden.
+
+### Experiment: does `proposed` block execution, or only hide configuration?
+
+Hypothesis: a resource in lifecycle state `proposed` is an execution barrier in
+its own right.
+
+Method: declare `<mode>full</mode>` with
+`<configurationToUse><predefined>development</predefined></configurationToUse>`
+and run against the resource while still `proposed`. Syntax taken from the
+simulation task midPoint generated itself, rather than written from memory.
+Second time that method was used here. When the syntax is unknown, find an
+instance the tool produced.
+
+Predicted: 16 items processed, 0 created. Confidence about 7 in 10.
+
+Result: the task failed after ten milliseconds with progress 0, and midPoint
+suspended it.
+
+    ConfigurationException: Full execution mode requires the use of
+    production configuration
+        at ActivityExecutionModeDefinition.getTaskExecutionMode
+        at LocalActivityRun.getTaskExecutionMode
+        at LocalActivityRun.runInternal
+
+Rejected in the activity definition, before the first object is read.
+
+So neither option the question offered. The two protections are not independent
+gates that happen to overlap. They are one enforced invariant:
+
+1. Full execution mode requires production configuration. Enforced, not
+   conventional.
+2. Production configuration does not see a resource in `proposed`.
+3. Therefore a `proposed` resource cannot be touched in full mode. Not "should
+   not be". Cannot.
+
+There is no path where someone writes to production against half-finished
+configuration, because the combination that would allow it does not validate.
+
+The suspension is deliberate too. A misconfigured task stops and waits for a
+human instead of rescheduling and filling the log with the same error.
+
+Prediction scored: right direction, wrong mechanism. I expected the writes to
+be discarded after processing. In fact the task never starts.
+
+Method note: the outcome table had three rows and reality supplied a fourth.
+Enumerating outcomes before an experiment is worth doing, and the list is never
+complete.
+
+### Moved to Active
+
+Lifecycle state changed from `proposed` to `active` on 10 October 2026. The
+deliberate act of declaring the configuration operational. Until then it was a
+draft that could be exercised but not applied.
+
+### First real import
+
+Task restored to its defaults (no `<execution>` block, so full plus
+production), resumed, and run.
+
+    resultStatus      success
+    progress          16
+    totalSuccessCount 32
+    totalFailureCount 0
+
+Sixteen rows processed, thirty-two object operations: sixteen users created and
+sixteen shadows updated to point at them. User count went from 1 to 17.
+
+**EMP0009, Nina Petrova, was created disabled.** Her contract ended 2026-08-31
+and her row is still in the HR file. midPoint read the endDate, set validTo,
+computed the effective status, and created her account without access. No
+ticket, no human noticing, no cleanup step.
+
+A feed copies data. A governance pipeline applies the rule, including to the
+records nobody tidied up.
+
+### Configuration drift, in the opposite direction
+
+Until this point the entire midPoint configuration lived in one place: the
+container's PostgreSQL. The repository held the compose file and the CSV, and
+none of the identity configuration.
+
+Same failure as the `:ro` mount, inverted. There the declarative source was
+wrong and the running system right. Here the running system was right and the
+declarative source did not exist. Both are the same mistake: treating the
+running environment as the source of truth.
+
+### Operational note
+
+`curl -s` without `-f` treats an HTTP error as success. A mistyped password
+returned 401 with an empty body, curl wrote a zero-byte file and exited 0, and
+the `&&` chain deleted the backup.
+
+Correct pattern for anything that replaces a file from the network: write to a
+temporary file, verify the content, then move into place.
+
+    TMP=$(mktemp) && curl -sf ... -o "$TMP" \
+      && test -s "$TMP" && grep -q 'expected' "$TMP" \
+      && mv "$TMP" target.xml
+
 
 ## Open items
 
@@ -388,8 +594,12 @@ delimiter inferred correctly, `employeeNumber` serving as the identifier.
       matching `EMP\d{4}`)
 - [x] Build the HR CSV and stand up midPoint on port 8081
 - [x] Create the CSV resource, correlating and naming on `employeeNumber`
-- [ ] Configure attribute mappings from the CSV into midPoint User objects
+- [x] Configure attribute mappings from the CSV into midPoint User objects
 - [ ] Configure the Keycloak resource as a provisioning target
 - [ ] Implement the derivation rules and the joiner / mover / leaver flows
 - [ ] Add the exclusion rule between `finance-write` and `finance-approve`
-- [ ] Export midPoint objects to XML and version them alongside the realm
+- [x] Export midPoint objects to XML and version them alongside the realm
+- [ ] Create a service account with a declared human owner and a
+      time-limited credential, and include it in a certification campaign
+- [ ] Deactivate the owner of a service account and observe what happens
+      to it (Evolveum documents no mechanism preventing orphaning)

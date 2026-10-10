@@ -1,0 +1,112 @@
+<task xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3" xmlns:icfs="http://midpoint.evolveum.com/xml/ns/public/connector/icf-1/resource-schema-3" xmlns:org="http://midpoint.evolveum.com/xml/ns/public/common/org-3" xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3" xmlns:ri="http://midpoint.evolveum.com/xml/ns/public/resource/instance-3" xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" oid="66da043e-5d6e-49a3-b77f-0d63c97fe49e">
+    <_metadata id="2">
+        <storage>
+            <createTimestamp>2026-10-09T18:01:48.162Z</createTimestamp>
+            <creatorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+            <createChannel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</createChannel>
+        </storage>
+        <process>
+            <requestTimestamp>2026-10-09T18:01:47.807Z</requestTimestamp>
+            <requestorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+        </process>
+    </_metadata>
+    <name>HR Source import</name>
+    <description>Initial load of staff identities from the authoritative HR CSV source. Runs in simulation mode: computes all deltas without writing to the repository or to the resource.</description>
+    <documentation>First execution of the inbound pipeline defined on the HR Source (CSV) resource. Each resource object is processed through the correlation rule and the inbound mappings, and the resulting deltas are recorded as a Simulation Result.
+
+Run as a simulation first so that the computed deltas can be inspected object by object before any user is created. Points to verify in the result: that every record resolves to the Unmatched situation, that validFrom and validTo are populated from the startDate and endDate colums, and that EMP0020 is handled as intended.
+
+Import is used rather than reconciliation because this is an initial load against an empty repository. Reconciliation becomes relevant later, for detecting objects that have disappeared from the source.</documentation>
+    <operationExecution id="8">
+        <recordType>simple</recordType>
+        <timestamp>2026-10-09T18:01:48.319Z</timestamp>
+        <operation>
+            <objectDelta>
+                <t:changeType>add</t:changeType>
+                <t:objectType>c:TaskType</t:objectType>
+            </objectDelta>
+            <executionResult>
+                <operation>com.evolveum.midpoint.model.impl.lens.ChangeExecutor.executeDelta</operation>
+                <status>success</status>
+                <importance>normal</importance>
+                <token>1000000000000058725</token>
+            </executionResult>
+            <objectName>HR Source import</objectName>
+        </operation>
+        <status>success</status>
+        <initiatorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+        <channel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</channel>
+    </operationExecution>
+    <assignment id="1">
+        <_metadata id="3">
+            <storage>
+                <createTimestamp>2026-10-09T18:01:48.162Z</createTimestamp>
+                <creatorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+                <createChannel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</createChannel>
+            </storage>
+            <process>
+                <requestTimestamp>2026-10-09T18:01:47.807Z</requestTimestamp>
+                <requestorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+            </process>
+            <provenance>
+                <acquisition id="4">
+                    <actorRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+                    <channel>http://midpoint.evolveum.com/xml/ns/public/common/channels-3#user</channel>
+                    <timestamp>2026-10-09T18:01:47.794Z</timestamp>
+                </acquisition>
+            </provenance>
+        </_metadata>
+        <targetRef oid="00000000-0000-0000-0000-000000000503" relation="org:default" type="c:ArchetypeType"/>
+        <activation>
+            <effectiveStatus>enabled</effectiveStatus>
+        </activation>
+    </assignment>
+    <iteration>0</iteration>
+    <iterationToken/>
+    <archetypeRef oid="00000000-0000-0000-0000-000000000503" relation="org:default" type="c:ArchetypeType"/>
+    <roleMembershipRef oid="00000000-0000-0000-0000-000000000503" relation="org:default" type="c:ArchetypeType">
+        <_metadata id="5">
+            <storage>
+                <createTimestamp>2026-10-09T18:01:48.117Z</createTimestamp>
+            </storage>
+            <provenance>
+                <assignmentPath>
+                    <sourceRef oid="66da043e-5d6e-49a3-b77f-0d63c97fe49e" relation="org:default" type="c:TaskType"/>
+                    <segment id="6">
+                        <segmentOrder>1</segmentOrder>
+                        <assignmentId>1</assignmentId>
+                        <targetRef oid="00000000-0000-0000-0000-000000000503" relation="org:default" type="c:ArchetypeType"/>
+                        <matchingOrder>true</matchingOrder>
+                    </segment>
+                </assignmentPath>
+            </provenance>
+        </_metadata>
+    </roleMembershipRef>
+    <ownerRef oid="00000000-0000-0000-0000-000000000002" relation="org:default" type="c:UserType"/>
+    <objectRef oid="ebd5e599-4f07-4be0-be1c-07bdc2f9b563" relation="org:default" type="c:ResourceType"/>
+    <binding>loose</binding>
+    <activity>
+        <work>
+            <import>
+                <resourceObjects>
+                    <resourceRef oid="ebd5e599-4f07-4be0-be1c-07bdc2f9b563" relation="org:default" type="c:ResourceType"/>
+                    <kind>account</kind>
+                    <intent>default</intent>
+                </resourceObjects>
+            </import>
+        </work>
+        <execution>
+            <mode>preview</mode>
+            <configurationToUse>
+                <predefined>development</predefined>
+            </configurationToUse>
+        </execution>
+        <reporting>
+            <simulationResult>
+                <definition>
+                    <useOwnPartitionForProcessedObjects>false</useOwnPartitionForProcessedObjects>
+                </definition>
+            </simulationResult>
+        </reporting>
+    </activity>
+</task>
