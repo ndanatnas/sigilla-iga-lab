@@ -579,9 +579,126 @@ temporary file, verify the content, then move into place.
       && mv "$TMP" target.xml
 
 
+## Credentials and false green
+
+### Credentials out of the compose file
+
+Five credentials lived in `docker-compose.yml`, each one identical to its own
+username: two database passwords, their two usernames, and the Keycloak
+bootstrap admin. Anyone cloning the repository met
+`KC_BOOTSTRAP_ADMIN_PASSWORD: admin` in the first file they opened.
+
+They are now `${VAR}` references resolved from a `.env` file that git ignores,
+with a `.env.example` committed alongside. The usernames stay as real values in
+the example and only the passwords become placeholders. A template that does
+not work when copied is worse than no template, because it looks tested.
+
+This is a signalling fix, not a security one. The lab runs on localhost with
+invented data and nothing here becomes safer. What changes is that a reader
+evaluating security judgement no longer finds a plaintext admin password in the
+first thirty lines.
+
+### The pre-commit check was scanning the wrong place
+
+The rule in use was:
+
+    grep -i -E 'password|clearValue|secret' midpoint/objects/*.xml
+
+It ran, it passed, and it had never once looked at `docker-compose.yml`. The
+control existed; its scope did not cover where the problem was.
+
+Three changes. It now reads `git diff --cached`, which is the content the commit
+will actually carry, rather than files on disk, which may be staged in a
+different version. It covers everything staged rather than one directory and one
+extension. And it excludes `${` and `changeme`, because without that it would
+flag six legitimate lines, and a check that cries wolf gets switched off by its
+own operator.
+
+### POSTGRES_PASSWORD does not change an existing database
+
+Parameterising the compose file rotates nothing. `POSTGRES_PASSWORD` is read
+only when the entrypoint initialises an empty data directory. The volumes
+already existed, so that value had stopped mattering long ago; the real password
+lives inside Postgres and changes only through `ALTER USER`.
+
+Same for `KC_BOOTSTRAP_ADMIN_PASSWORD`, which applies when no admin exists yet.
+The admin already in the database keeps the password it was created with.
+
+### The health check that did not check health
+
+Setting the role passwords by hand went wrong first: a placeholder was pasted
+literally, so both roles ended up with the placeholder text as their password
+and nothing in the environment matched any more.
+
+`docker compose up -d --force-recreate` then reported this:
+
+    OK  iam-lab-keycloak-db    Healthy
+    OK  iam-lab-midpoint-db    Healthy
+    OK  iam-lab-keycloak       Started
+    OK  iam-lab-midpoint-init  Exited
+    OK  iam-lab-midpoint       Started
+
+Five green checks on a stack where Keycloak was in a restart loop logging
+`FATAL: password authentication failed for user "keycloak"`.
+
+Each check is honest about what it measures and none of them measures the
+failure. `pg_isready` opens a connection far enough to learn that the server is
+accepting connections and never authenticates, so it reports Healthy for a
+database that will reject every application login. `Started` means the process
+launched, not that it connected, and the Keycloak service has no health check of
+its own, which is why a crash loop looked like a success. `midpoint-init` runs a
+bash chain ending in `|| echo`, so it exits 0 almost regardless of what happened
+inside it.
+
+### Testing the path that actually fails
+
+The check that works connects from one container to the other database across
+the network:
+
+    docker compose exec midpoint-db \
+      psql "postgresql://keycloak:$KC_DB_PASSWORD@keycloak-db:5432/keycloak" \
+      -c '\conninfo'
+
+The same test from inside `keycloak-db` against `127.0.0.1` would pass with the
+wrong password. `pg_hba.conf` is evaluated first match wins, and the image ships
+with
+
+    local all all              trust
+    host  all all 127.0.0.1/32 trust
+    host  all all all          scram-sha-256
+
+so a loopback connection is authorised by the second line and never reaches the
+third. Crossing the Docker network gives the connection a subnet address, which
+matches nothing until `scram-sha-256`. The address printed by `\conninfo` is the
+evidence that the right path was taken: `172.18.0.3`, not `127.0.0.1`.
+
+That same asymmetry is what made the repair possible. The applications were
+locked out over the network while `docker compose exec` still had an
+unauthenticated local socket to enter by.
+
+### The pattern
+
+Four controls in one morning reported success without touching the thing that
+breaks:
+
+- `pg_isready` confirms reachability, not authorisation
+- `Started` confirms a process, not a connection
+- `curl` without `-f` treats HTTP 401 and 500 as success, which is how a backup
+  file was deleted here last week
+- `grep` on `.gitignore` reads the text of a rule, while `git check-ignore -v`
+  asks git which rule actually matches and answers with file and line
+
+It is the same failure as correlating on a mutable identifier: the mechanism
+runs, reports what it was asked to report, and never exercises the case that
+matters. Worth holding on to when the certification campaign gets built, because
+an access review that confirms accounts exist rather than that they are still
+warranted has exactly this shape.
+
+---
+
 ## Open items
 
-- [ ] Move `KC_BOOTSTRAP_ADMIN_*` and both database passwords to a `.env` file,
+- [x] Move `KC_BOOTSTRAP_ADMIN_*` and both database passwords to a `.env` file,
       commit a `.env.example`, add `.env` to `.gitignore`
 - [ ] Add `hr-source/.*.lock` to `.gitignore` — the CSV connector writes a lock
       file next to the data
