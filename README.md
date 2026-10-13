@@ -47,20 +47,31 @@ flowchart LR
   every department, a management chain, a leaver, and two deliberate
   segregation-of-duties conflicts
 - midPoint and Keycloak running side by side from one compose file, on a shared
-  network
-- CSV resource created in midPoint, correlating and naming on `employeeNumber`,
-  all sixteen accounts readable
+  network, with credentials supplied from `.env`
+- CSV resource created in midPoint, correlating and naming on `employeeNumber`
+- Attribute mappings from the CSV into midPoint User objects, including the
+  activation mappings that derive account state from employment dates:
+  `startDate` to `validFrom`, `endDate` to `validTo`
+- The import previewed in simulation and then executed for real. All sixteen
+  records imported. `EMP0009` carries an `endDate` in the past, and the account
+  was created already disabled by the rule rather than by hand. A feed copies
+  data; a governance pipeline applies the policy, including to the records
+  nobody tidied up.
+- midPoint objects exported to XML and version controlled under
+  `midpoint/objects/`. Task definitions are stripped of execution state before
+  committing (`tools/strip-task-state.py`): a task file grows from roughly 120
+  lines to 66 KB once it has run, and the run history is not the configuration.
 
 **Not built yet**
 
-- Attribute mappings from the CSV into midPoint user objects
-- The Keycloak resource as a provisioning target
-- The joiner, mover and leaver flows themselves
-- The exclusion rule that detects the planted SoD conflicts
-- midPoint objects exported to XML and version controlled
+- The Keycloak resource as a provisioning target. Nothing is written outbound
+  yet, so joiner, mover and leaver are visible inside midPoint and not in
+  Keycloak.
+- The exclusion rule that detects the planted segregation-of-duties conflicts
+- An access certification campaign driven by line managers
 
-The reasoning behind each decision, including one that turned out to be wrong,
-is recorded in [LAB-LOG.md](LAB-LOG.md).
+The reasoning behind each decision, including the ones that turned out to be
+wrong, is recorded in [LAB-LOG.md](LAB-LOG.md).
 
 ## Why Keycloak and midPoint
 
@@ -136,20 +147,35 @@ leaver flow.
 ## Running the lab
 
 ```bash
-git clone <this-repo> && cd sigilla-iga-lab
+git clone https://github.com/ndanatnas/sigilla-iga-lab.git
+cd sigilla-iga-lab
+cp .env.example .env
+```
+
+Edit `.env` and replace each `changeme` with a password of your own. Then:
+
+```bash
+docker compose config >/dev/null   # resolves .env and validates first
 docker compose up -d
 docker compose logs -f keycloak
 ```
 
-Keycloak admin console: http://localhost:8080
+- Keycloak admin console: http://localhost:8080
+- midPoint: http://localhost:8081
+
+Set the passwords before the first `up`. `POSTGRES_PASSWORD` is read only when
+the entrypoint initialises an empty data directory, and
+`KC_BOOTSTRAP_ADMIN_PASSWORD` only when no admin exists yet. After that the
+values live inside the databases and change through `ALTER USER` and the
+Keycloak console, not through `.env`.
 
 ## Roadmap
 
 - [ ] Students as a second authoritative source, with its own lifecycle rules
 - [ ] Access certification campaign driven by line managers
 - [ ] Second target system (LDAP or Google Workspace) to demonstrate connectors
-- [ ] Realm configuration exported to JSON and version controlled
-- [ ] Credentials moved to `.env`, with `.env.example` committed
+- [x] Realm configuration exported to JSON and version controlled
+- [x] Credentials moved to `.env`, with `.env.example` committed
 
 ## Notes
 
